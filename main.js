@@ -157,8 +157,9 @@ hook.trigger = function(){
     var iEntityHealth = memory.readMemory(dwEntity + main.getOffset("m_iHealth"),"int");
     var iEntityTeam = memory.readMemory(dwEntity + main.getOffset("m_iTeamNum"),"int");
     if (main.LocalPlayerTeam != iEntityTeam && iEntityHealth > 0 && iCrosshair >= 1 && iCrosshair < 65){
-        if (keyboard.getAsyncKeyState(0x05)){
-            sleep.usleep(config.settings.trigger_delay);
+        if (keyboard.getAsyncKeyState(parseInt(config.settings.trigger_key))){
+            console.log(config.settings.trigger_delay);
+            sleep.usleep(parseInt(config.settings.trigger_delay));
             memory.writeMemory(DwClientDllBaseAddress + main.getOffset("m_dwForceAttack"), 5, "int");
             sleep.usleep(5);
             if(!keyboard.getAsyncKeyState(0x01))
@@ -242,5 +243,5 @@ hook.skinchanger.update = function(){
     memory.writeMemory(pointer + main.getOffset("m_dwFullUpdate"), -1,"int");
     setTimeout(function(){
         _updating = false;
-    },20);
+    },5);
 }
