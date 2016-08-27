@@ -7,70 +7,18 @@ var memory = require('memoryjs'),
     keyboard = require("asynckeystate"),
     sleep = require('sleep'),
     jsonfile = require('jsonfile'),
-    open = require('opener');
-
-var DwClientDllBaseAddress = null;
-var DwEngineDllBaseAddress = null;
-
-var express = require('express');
-var app = express();
-var server = require('http').Server(app);
-var io = require('socket.io')(server);
-
-app.use(express.static('public'));
-
-var _getProcess = null,hacked = false;
-
-checkForUpdate();
-var config = require("./config.json");
-var offsets = require("./offsets.json");
-var main = {
-    DwLocalPlayer: null,
-    LocalPlayerTeam: null,
-    DwGlowObjectManager: null
-};
-var _trigger,_glow,_radar,_flash,_bunnyhop,_skins,_updating,_started;
-
+    open = require('opener'),
+    https = require('https'),
+    localVersion = require('ver.json');
 
 server.listen(80);
 app.get('/', function (req, res) {
     res.sendFile('index.html' , { root : __dirname});
 });
-var getProcess = function(){
-    memory.openProcess("csgo.exe",function(err,process){
-        if(err != null && err == "unable to find process"){
-            io.emit("hooked",false);
-            return false;
-        }else{
-            try{
-                var clientModule = memory.findModule("client.dll", process.th32ProcessID);
-                if(!hacked){
-                    console.log("CSGO found. initizalizing hook.");
-                    memory.findModule("client.dll", process.th32ProcessID,function(err,module){
-                        var clientModule = module;
-                        DwClientDllBaseAddress = clientModule.modBaseAddr;
-                        io.emit("hooked",true);
-                        hacked = true;
-                    });
-                    var engineModule = memory.findModule("engine.dll", process.th32ProcessID);
-                    DwEngineDllBaseAddress = engineModule.modBaseAddr;
-                }
-            }catch(e){
-                if(hacked){
-                    hacked = false;
-                    console.log("CSGO Closed.");
-                    io.emit("hooked",false);
-                    clearInterval(_getProcess);
-                    _getProcess = setInterval(getProcess,1000);
-                }
-            }
-        }
-    });
-};
 server.on('listening', function() {
     open('http://localhost');
     console.log("Waiting for CSGO...");
-    _getProcess = setInterval(getProcess,1000);
+    _getProcess = setInterval(main.getProcess,1000);
 });
 io.on('connection', function (socket) {
     
@@ -80,7 +28,7 @@ io.on('connection', function (socket) {
     socket.on('config save', function (data) {
         main.saveConfig(data);
     });
-    socket.on('hook', function (data) {
+    socket.on('hack', function (data) {
         if(data){
             _started = true,main.start();
         }else{
@@ -89,10 +37,66 @@ io.on('connection', function (socket) {
     });
     config._started = _started;
     socket.emit("config", config);
-    socket.emit('hooked', hacked);
+    socket.emit('hacked', hacked);
     delete config._started ;
 });
 
+
+main.getJson = function(url){
+    https.get(url, function(res){
+        var body = '';
+
+        res.on('data', function(chunk){
+            body += chunk;
+        });
+
+        res.on('end', function(){
+            return JSON.parse(body);  
+        });
+    }).on('error', function(e){
+          console.log("Got an error: ", e);
+    });
+};
+main.checkForUpdate = function(){
+    var master = main.getJson('https://raw.githubusercontent.com/s-gto/BEA-hack/master/ver.json');
+    if(localVersion.version < master.version)
+        console.log("Your version is outdated, please update it from https://github.com/s-gto/BEA-hack");
+    else if(localVersion.offsets < master.offsets){
+        var offsets = main.getJson('https://raw.githubusercontent.com/s-gto/BEA-hack/master/offsets.json');
+        jsonfile.writeFile("./offsets.json", offsets);
+    }
+};
+main.getProcess = function(){
+    memory.openProcess("csgo.exe",function(err,process){
+        if(err != null && err == "unable to find process"){
+            io.emit("hacked",false);
+            return false;
+        }else{
+            try{
+                var clientModule = memory.findModule("client.dll", process.th32ProcessID);
+                if(!hacked){
+                    console.log("CSGO found. initizalizing hack.");
+                    memory.findModule("client.dll", process.th32ProcessID,function(err,module){
+                        var clientModule = module;
+                        DwClientDllBaseAddress = clientModule.modBaseAddr;
+                        io.emit("hacked",true);
+                        hacked = true;
+                    });
+                    var engineModule = memory.findModule("engine.dll", process.th32ProcessID);
+                    DwEngineDllBaseAddress = engineModule.modBaseAddr;
+                }
+            }catch(e){
+                if(hacked){
+                    hacked = false;
+                    console.log("CSGO Closed.");
+                    io.emit("hacked",false);
+                    clearInterval(_getProcess);
+                    _getProcess = setInterval(main.getProcess,1000);
+                }
+            }
+        }
+    });
+};
 main.getOffset = function(name){
     return parseInt(offsets[name]);
 };
@@ -116,44 +120,43 @@ main.start = function(){
     main.DwGlowObjectManager = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwGlowObject"),"int");
     _trigger = setInterval(function(){
         if(config.settings.trigger){
-            hook.trigger();
+            hack.trigger();
         }
     },5);
     _glow = setInterval(function(){
         if(config.settings.glow){
-            hook.glow.start();
+            hack.glow.start();
         }
     },20);
     _radar = setInterval(function(){
         if(config.settings.radar){
-            hook.radar();
+            hack.radar();
         }
     },20);
     _flash = setInterval(function(){
         if(config.settings.flash){
-            hook.noflash();
+            hack.noflash();
         }
     },2);
     _bunnyhop = setInterval(function(){
         if(config.settings.bunnyhop){
-            hook.bunnyhop();
+            hack.bunnyhop();
         }
     },5);
     _skins = setInterval(function(){
         if(config.settings.skins){
-            hook.skinchanger.skins();
+            hack.skinchanger.skins();
         }
     },10);
     setInterval(function(){
         if(keyboard.getAsyncKeyState(0x70) && !_updating)
-            hook.skinchanger.update();
+            hack.skinchanger.update();
     },10);
 };
-
-var hook = {};
-    hook.glow = {};
-    hook.skinchanger = {};
-hook.trigger = function(){
+var hack = {};
+    hack.glow = {};
+    hack.skinchanger = {};
+hack.trigger = function(){
 
     var DwLocalPlayer = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwLocalPlayer"),"int");
     var LocalPlayerTeam = memory.readMemory(DwLocalPlayer + main.getOffset("m_iTeamNum"),"int");
@@ -171,13 +174,13 @@ hook.trigger = function(){
         }
     }
 };
-hook.radar = function(){
+hack.radar = function(){
         for (var i = 1; i < 65; i++){
             var dwEntity =  memory.readMemory(DwClientDllBaseAddress +  main.getOffset("m_dwEntityList") + ( i - 1) * main.getOffset("m_entLoopDist"),"int");
             memory.writeMemory(dwEntity + main.getOffset("m_bSpotted"), 1, "int");
         }
 };
-hook.glow.start = function(){
+hack.glow.start = function(){
     var DwLocalPlayer = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwLocalPlayer"),"int");
     var LocalPlayerTeam = memory.readMemory(DwLocalPlayer + main.getOffset("m_iTeamNum"),"int");
     for (var i = 1; i < 65; i++){
@@ -188,14 +191,14 @@ hook.glow.start = function(){
         {
             var iGlowIndex = memory.readMemory(dwEntity + main.getOffset("m_iGlowIndex"),"int");
             if (iEntityTeam == LocalPlayerTeam){
-                hook.glow.setGlow(iGlowIndex, 0, 1, 0, 0.5);
+                hack.glow.setGlow(iGlowIndex, 0, 1, 0, 0.5);
             }
             else 
-                hook.glow.setGlow(iGlowIndex, 1, 0, 0, 0.5);
+                hack.glow.setGlow(iGlowIndex, 1, 0, 0, 0.5);
         }
     }
 };
-hook.glow.setGlow = function(iEntityGlowIndex, r, g, b, a){
+hack.glow.setGlow = function(iEntityGlowIndex, r, g, b, a){
     memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x4), r, "float");
     memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x8), g, "float");
     memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0xC), b, "float");
@@ -205,7 +208,7 @@ hook.glow.setGlow = function(iEntityGlowIndex, r, g, b, a){
     memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x25), 0, "bool");
     memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x26), 0, "bool");
 };
-hook.noflash = function(){
+hack.noflash = function(){
     var DwLocalPlayer = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwLocalPlayer"),"int");
     var flashMaxAlpha = memory.readMemory(DwLocalPlayer + main.getOffset("m_flFlashMaxAlpha"), "float");
  
@@ -214,7 +217,7 @@ hook.noflash = function(){
         memory.writeMemory(DwLocalPlayer + main.getOffset("m_flFlashMaxAlpha"), 0.0, "float");
     }
 };
-hook.bunnyhop = function(){
+hack.bunnyhop = function(){
     var DwLocalPlayer = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwLocalPlayer"),"int");
     var iFlags = memory.readMemory(DwLocalPlayer + main.getOffset("m_fFlags"), "int");
     if (keyboard.getAsyncKeyState(0x20)) 
@@ -222,7 +225,7 @@ hook.bunnyhop = function(){
         memory.writeMemory(DwClientDllBaseAddress + main.getOffset("m_dwForceJump"), ((iFlags==257)||(iFlags==263))?5:4, "int");
     } 
 };
-hook.skinchanger.skins = function(){
+hack.skinchanger.skins = function(){
     CBase = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwLocalPlayer"),"int");
     for (a = 0; a != 65; a++){
         currentWeaponIndex = memory.readMemory(CBase + main.getOffset("m_hMyWeapons") + ((a - 1) * 0x4),"int") & 0xFFF;
@@ -245,7 +248,7 @@ hook.skinchanger.skins = function(){
         }
     }
 }
-hook.skinchanger.update = function(){
+hack.skinchanger.update = function(){
     _updating = true;
     var pointer = memory.readMemory(DwEngineDllBaseAddress + main.getOffset("m_dwClientState"),"int");
     memory.writeMemory(pointer + main.getOffset("m_dwFullUpdate"), -1,"int");
@@ -253,3 +256,26 @@ hook.skinchanger.update = function(){
         _updating = false;
     },5);
 }
+
+var DwClientDllBaseAddress = null;
+var DwEngineDllBaseAddress = null;
+
+var express = require('express');
+var app = express();
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
+
+app.use(express.static('public'));
+
+main.checkForUpdate();
+
+var _trigger,_glow,_radar,_flash,_bunnyhop,_skins,_updating,_started;
+var _getProcess = null,hacked = false;
+var config = require("./config.json");
+var offsets = require("./offsets.json");
+var main = {
+    DwLocalPlayer: null,
+    LocalPlayerTeam: null,
+    DwGlowObjectManager: null
+};
+

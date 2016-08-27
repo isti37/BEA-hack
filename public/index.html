@@ -58,7 +58,7 @@
 			unknowncheats.com
 	-->
 </head>
-<body ng-app="beaHook">
+<body ng-app="beahack">
 	<div ng-controller="mainCtrl" class="statusClass">
 		<div id="newWeapon" class="modal fade" role="dialog">
 			<div class="modal-dialog">
@@ -141,7 +141,7 @@
 					<div class="checkbox">
 						<label><input type="checkbox" ng-model="config.settings.skins" ng-change="change('skins')" value="">Skinchanger</label>
 					</div>
-					<button ng-click="hookstatus = !hookstatus; hook();" type="button" class="btn btn-large" ng-class="hookstatus ? 'btn-danger' : 'btn-success'">{{ !hookstatus ? "Start" : "Stop" }} </button>
+					<button ng-click="hackstatus = !hackstatus; hack();" type="button" class="btn btn-large" ng-class="hackstatus ? 'btn-danger' : 'btn-success'">{{ !hackstatus ? "Start" : "Stop" }} </button>
 				</div>
 				<div id="skins" class="tab-pane fade">
 					<h3>Skinchanger</h3>
@@ -194,7 +194,7 @@
 		</div>
 	</div>
 	<script type="text/javascript">
-		angular.module('beaHook', []).controller('mainCtrl', ["$scope" , function(e) {
+		angular.module('beahack', []).controller('mainCtrl', ["$scope" , function(e) {
 			e.saveNewWeapon = function(){
 				e.newWeapon.paintkit = parseInt(e.newWeapon.paintkit),
 				e.config.skins[e.newWeaponName] = e.newWeapon,
@@ -545,12 +545,12 @@
 					'455': 'Akihabara Accept',
 					'601': 'Syd Mead'
 				}
-			},e.hookstatus = false,e.config = null,e.trigger = false,e.radar = false,e.glow = false,e.status = !1,socket.on("config",function(config){
+			},e.hackstatus = false,e.config = null,e.trigger = false,e.radar = false,e.glow = false,e.status = !1,socket.on("config",function(config){
 				e.$apply(function(){
 					e.config = config;
-					e.hookstatus = config._started;
+					e.hackstatus = config._started;
 				});
-			}),socket.on("hooked",function(status){
+			}),socket.on("hacked",function(status){
 				e.$apply(function () {
 					e.status = status;
 		        });
@@ -559,8 +559,8 @@
 					"data": data,
 					"value": e.config.settings[data]
 				});
-			},e.hook = function() {
-				socket.emit("hook",e.hookstatus);
+			},e.hack = function() {
+				socket.emit("hack",e.hackstatus);
 			},e.delete = function(weapon){
 				delete e.config.skins[weapon],
 				e.save()
