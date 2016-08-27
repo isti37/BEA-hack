@@ -2,13 +2,15 @@
 <html>
 <head>
 	<title>place1337's hack</title>
-	<script src="/socket.io/socket.io.js"></script>
-	<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+	<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
 	<script>
 	  var socket = io.connect('http://localhost');
 	</script>
 	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
 	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+	
 	<style type="text/css">
 		body{
 			background: #222;
@@ -57,8 +59,46 @@
 	-->
 </head>
 <body ng-app="beaHook">
-	
 	<div ng-controller="mainCtrl" class="statusClass">
+		<div id="newWeapon" class="modal fade" role="dialog">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal">&times;</button>
+						<h4 class="modal-title">Add new weapon</h4>
+					</div>
+					<div class="modal-body">
+						<div class="form-group">
+							<label for="weapon">
+								Weapon
+							</label>
+							<select id="weapon" class="form-control" ng-model="newWeaponName">
+								<option ng-repeat="weapon in weapons" ng-value="weapon.name">{{weapon.name}}</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="skin">
+								Skin name
+							</label>
+							<select id="skin"  class="form-control" ng-model="newWeapon.paintkit">
+								<option ng-repeat="(skinid,skinname) in skins[newWeaponName]" ng-value="skinid">{{skinname}}</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="wear">Wear</label>
+							<input type="number" class="form-control" ng-model="newWeapon.wear" id="wear" placeholder="0.01">
+						</div>
+						<div class="form-group">
+							<label for="exampleInputName2">Seed</label>
+							<input type="number" class="form-control" ng-model="newWeapon.seed" id="Seed" placeholder="1">
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-success btn-md" ng-click="saveNewWeapon()" data-dismiss="modal">Save</button>
+					</div>
+				</div>
+			</div>
+		</div>
 		<div class="loader" ng-show="!status">
 			<span class="status">{{status ? "Started" : "Loading..."}}</span>
 			<br>
@@ -70,6 +110,7 @@
 			<ul class="nav nav-pills">
 				<li class="active"><a data-toggle="pill" href="#settings">Settings</a></li>
 				<li><a data-toggle="pill" href="#skins">Skinchanger</a></li>
+				<li><a data-toggle="pill" href="#glow">Glow settings</a></li>
 			</ul>
 
 			<div class="tab-content" class="mainClass">
@@ -101,7 +142,6 @@
 						<label><input type="checkbox" ng-model="config.settings.skins" ng-change="change('skins')" value="">Skinchanger</label>
 					</div>
 					<button ng-click="hookstatus = !hookstatus; hook();" type="button" class="btn btn-large" ng-class="hookstatus ? 'btn-danger' : 'btn-success'">{{ !hookstatus ? "Start" : "Stop" }} </button>
-
 				</div>
 				<div id="skins" class="tab-pane fade">
 					<h3>Skinchanger</h3>
@@ -131,49 +171,29 @@
 						</table>
 					</div>
 				</div>
-				<div id="newWeapon" class="modal fade" role="dialog">
-					<div class="modal-dialog">
-						<div class="modal-content">
-							<div class="modal-header">
-								<button type="button" class="close" data-dismiss="modal">&times;</button>
-								<h4 class="modal-title">Add new weapon</h4>
-							</div>
-							<div class="modal-body">
-								<div class="form-group">
-									<label for="weapon">
-										Weapon
-									</label>
-									<select id="weapon" class="form-control" ng-model="newWeaponName">
-										<option ng-repeat="weapon in weapons" ng-value="weapon.name">{{weapon.name}}</option>
-									</select>
-								</div>
-								<div class="form-group">
-									<label for="skin">
-										Skin name
-									</label>
-									<select id="skin"  class="form-control" ng-model="newWeapon.paintkit">
-										<option ng-repeat="(skinid,skinname) in skins[newWeaponName]" ng-value="skinid">{{skinname}}</option>
-									</select>
-								</div>
-								<div class="form-group">
-									<label for="wear">Wear</label>
-									<input type="number" class="form-control" ng-model="newWeapon.wear" id="wear" placeholder="0.01">
-								</div>
-								<div class="form-group">
-									<label for="exampleInputName2">Seed</label>
-									<input type="number" class="form-control" ng-model="newWeapon.seed" id="Seed" placeholder="1">
-								</div>
-							</div>
-							<div class="modal-footer">
-								<button type="button" class="btn btn-success btn-md" ng-click="saveNewWeapon()" data-dismiss="modal">Save</button>
-							</div>
-						</div>
-					</div>
+				<div id="glow" class="tab-pane fade">
+					<div id="cp7" class="inl-bl"></div>
+					<style>
+					    .inl-bl {
+					        display: inline-block;
+					    }
+					</style>
+					<script>
+					/*
+					    $(function() {
+					        $('#cp7').colorpicker({
+					            color: '#ffaa00',
+					            container: true,
+					            inline: true
+					        });
+					    });
+*/
+					</script>
 				</div>
 			</div>
 		</div>
 	</div>
-	<script>
+	<script type="text/javascript">
 		angular.module('beaHook', []).controller('mainCtrl', ["$scope" , function(e) {
 			e.saveNewWeapon = function(){
 				e.newWeapon.paintkit = parseInt(e.newWeapon.paintkit),
@@ -554,8 +574,9 @@
 			}
 		}]);
 	</script>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-	<script src="//use.fontawesome.com/4560377dde.js"></script>
-	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="//use.fontawesome.com/4560377dde.js"></script>
+	<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<link href="/static/colorpicker.min.css" rel="stylesheet">
+	<script type="text/javascript" src="static/colorpicker.min.js"></script>
 </body>
 </html>

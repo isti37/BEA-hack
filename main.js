@@ -12,9 +12,12 @@ var memory = require('memoryjs'),
 var DwClientDllBaseAddress = null;
 var DwEngineDllBaseAddress = null;
 
-var app = require('express')();
+var express = require('express');
+var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
+
+app.use(express.static('public'));
 
 var _getProcess = null,hacked = false;
 
@@ -109,8 +112,6 @@ main.stop = function(){
     clearInterval(_skins);
 }
 main.start = function(){
-    main.DwLocalPlayer = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwLocalPlayer"),"int");
-    main.LocalPlayerTeam = memory.readMemory(main.DwLocalPlayer + main.getOffset("m_iTeamNum"),"int");
     main.DwGlowObjectManager = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwGlowObject"),"int");
     _trigger = setInterval(function(){
         if(config.settings.trigger){
@@ -152,13 +153,15 @@ var hook = {};
     hook.glow = {};
     hook.skinchanger = {};
 hook.trigger = function(){
-    var iCrosshair = memory.readMemory(main.DwLocalPlayer + main.getOffset("m_iCrossHairID"),"int");
+
+    var DwLocalPlayer = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwLocalPlayer"),"int");
+    var LocalPlayerTeam = memory.readMemory(DwLocalPlayer + main.getOffset("m_iTeamNum"),"int");
+    var iCrosshair = memory.readMemory(DwLocalPlayer + main.getOffset("m_iCrossHairID"),"int");
     var dwEntity =  memory.readMemory(DwClientDllBaseAddress +  main.getOffset("m_dwEntityList") + ( iCrosshair - 1) * main.getOffset("m_entLoopDist"),"int");
     var iEntityHealth = memory.readMemory(dwEntity + main.getOffset("m_iHealth"),"int");
     var iEntityTeam = memory.readMemory(dwEntity + main.getOffset("m_iTeamNum"),"int");
-    if (main.LocalPlayerTeam != iEntityTeam && iEntityHealth > 0 && iCrosshair >= 1 && iCrosshair < 65){
+    if (LocalPlayerTeam != iEntityTeam && iEntityHealth > 0 && iCrosshair >= 1 && iCrosshair < 65){
         if (keyboard.getAsyncKeyState(parseInt(config.settings.trigger_key))){
-            console.log(config.settings.trigger_delay);
             sleep.usleep(parseInt(config.settings.trigger_delay));
             memory.writeMemory(DwClientDllBaseAddress + main.getOffset("m_dwForceAttack"), 5, "int");
             sleep.usleep(5);
@@ -174,6 +177,8 @@ hook.radar = function(){
         }
 };
 hook.glow.start = function(){
+    var DwLocalPlayer = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwLocalPlayer"),"int");
+    var LocalPlayerTeam = memory.readMemory(DwLocalPlayer + main.getOffset("m_iTeamNum"),"int");
     for (var i = 1; i < 65; i++){
         var dwEntity =  memory.readMemory(DwClientDllBaseAddress +  main.getOffset("m_dwEntityList") + ( i - 1) * main.getOffset("m_entLoopDist"),"int");
         var iEntityTeam = memory.readMemory(dwEntity + main.getOffset("m_iTeamNum"),"int");
@@ -181,7 +186,7 @@ hook.glow.start = function(){
         if (!bEntityDormant)
         {
             var iGlowIndex = memory.readMemory(dwEntity + main.getOffset("m_iGlowIndex"),"int");
-            if (iEntityTeam == main.LocalPlayerTeam){
+            if (iEntityTeam == LocalPlayerTeam){
                 hook.glow.setGlow(iGlowIndex, 0, 1, 0, 0.5);
             }
             else 
@@ -200,15 +205,17 @@ hook.glow.setGlow = function(iEntityGlowIndex, r, g, b, a){
     memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x26), 0, "bool");
 };
 hook.noflash = function(){
-    var flashMaxAlpha = memory.readMemory(main.DwLocalPlayer + main.getOffset("m_flFlashMaxAlpha"), "float");
+    var DwLocalPlayer = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwLocalPlayer"),"int");
+    var flashMaxAlpha = memory.readMemory(DwLocalPlayer + main.getOffset("m_flFlashMaxAlpha"), "float");
  
     if (flashMaxAlpha > 0.0)
     {
-        memory.writeMemory(main.DwLocalPlayer + main.getOffset("m_flFlashMaxAlpha"), 0.0, "float");
+        memory.writeMemory(DwLocalPlayer + main.getOffset("m_flFlashMaxAlpha"), 0.0, "float");
     }
 };
 hook.bunnyhop = function(){
-    var iFlags = memory.readMemory(main.DwLocalPlayer + main.getOffset("m_fFlags"), "int");
+    var DwLocalPlayer = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwLocalPlayer"),"int");
+    var iFlags = memory.readMemory(DwLocalPlayer + main.getOffset("m_fFlags"), "int");
     if (keyboard.getAsyncKeyState(0x20)) 
     {
         memory.writeMemory(DwClientDllBaseAddress + main.getOffset("m_dwForceJump"), ((iFlags==257)||(iFlags==263))?5:4, "int");
