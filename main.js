@@ -1,4 +1,8 @@
 // npm i memoryjs asynckeystate jsonfile sleep opener express socket.io
+/*
+If you have any question:
+    http://www.unknowncheats.me/forum/counterstrike-global-offensive/186350-node-js-hack-glow-skinchanger-radar-basic-web-gui.html
+*/
 var memory = require('memoryjs'),
     keyboard = require("asynckeystate"),
     sleep = require('sleep'),
@@ -12,9 +16,10 @@ var app = require('express')();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
 
-var _getProcess = null,_hooked = false;
+var _getProcess = null,hacked = false;
 
 var config = jsonfile.readFileSync("./config.json");
+var offsets = jsonfile.readFileSync("./offsets.json");
 var main = {
     DwLocalPlayer: null,
     LocalPlayerTeam: null,
@@ -35,20 +40,20 @@ var getProcess = function(){
         }else{
             try{
                 var clientModule = memory.findModule("client.dll", process.th32ProcessID);
-                if(!_hooked){
+                if(!hacked){
                     console.log("CSGO found. initizalizing hook.");
                     memory.findModule("client.dll", process.th32ProcessID,function(err,module){
                         var clientModule = module;
                         DwClientDllBaseAddress = clientModule.modBaseAddr;
                         io.emit("hooked",true);
-                        _hooked = true;
+                        hacked = true;
                     });
                     var engineModule = memory.findModule("engine.dll", process.th32ProcessID);
                     DwEngineDllBaseAddress = engineModule.modBaseAddr;
                 }
             }catch(e){
-                if(_hooked){
-                    _hooked = false;
+                if(hacked){
+                    hacked = false;
                     console.log("CSGO Closed.");
                     io.emit("hooked",false);
                     clearInterval(_getProcess);
@@ -80,12 +85,12 @@ io.on('connection', function (socket) {
     });
     config._started = _started;
     socket.emit("config", config);
-    socket.emit('hooked', _hooked);
+    socket.emit('hooked', hacked);
     delete config._started ;
 });
 
 main.getOffset = function(name){
-    return parseInt(config.offsets[name]);
+    return parseInt(offsets[name]);
 };
 main.setConfig = function(data){
     config.settings[data.data] = data.value;
