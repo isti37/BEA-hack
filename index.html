@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>place1337's hack</title>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+	<script>
+	  var socket = io.connect('http://localhost');
+	</script>
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+	<style type="text/css">
+		body{
+			background: #222;
+			font-family: 'Roboto', sans-serif;
+		}
+		.statusClass{
+		    color: #ff4c4c;
+		    text-align: center;
+		    margin: auto;
+		    width: 50%;
+		    margin-top: 5%;
+		    height: 300px;
+		}
+		.status{
+    		font-size: 30px;
+		}
+		.main{
+		    width: 75%;
+		    margin: auto;
+		    background: #393939;
+		    padding: 20px;
+		    color: #fff;
+		    height: 450px;
+		}
+		#settings, #skins{
+			text-align: left;
+		}
+		.inputText{
+			color:#000;
+			width:50px;
+			text-align: center;
+		}
+		#newWeapon{
+			color: #000;
+			text-align: left;
+		}
+	</style>
+	<!--
+		credits goes to:
+			@gr4n000r
+			@User344
+			@exodia1232
+			@TheOnlyLan
+			@ReactiioN
+			unknowncheats.com
+	-->
+</head>
+<body ng-app="beaHook">
+	
+	<div ng-controller="mainCtrl" class="statusClass">
+		<div class="loader" ng-show="!status">
+			<span class="status">{{status ? "Started" : "Loading..."}}</span>
+			<br>
+			<br>
+			<br>
+			<i class="fa fa-spinner fa-spin fa-4x"></i>
+		</div>
+		<div ng-show="status" class="main">
+			<ul class="nav nav-pills">
+				<li class="active"><a data-toggle="pill" href="#settings">Settings</a></li>
+				<li><a data-toggle="pill" href="#skins">Skinchanger</a></li>
+			</ul>
+
+			<div class="tab-content" class="mainClass">
+				<div id="settings" class="tab-pane fade in active">
+					<h3 class="text-left">Settings</h3>
+					<div class="checkbox">
+						<label><input type="checkbox" ng-model="config.settings.trigger" ng-change="change('trigger')" value="">Trigger Bot</label>
+					</div>
+					<div class="checkbox">
+						<label>Trigger Key  <input class="inputText" type="text" ng-model="config.settings.trigger_key" ng-change="change('trigger_key')" value=""></label>
+						<small><a target="_blank" href="https://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes">keycodes</a></small>
+					</div>
+					<div class="checkbox">
+						<label>Trigger Delay  <input class="inputText" type="text" ng-model="config.settings.trigger_delay" ng-change="change('trigger_delay')" value=""></label>
+					</div>
+					<div class="checkbox">
+						<label><input type="checkbox" ng-model="config.settings.glow" ng-change="change('glow')" value="">Glow</label>
+					</div>
+					<div class="checkbox">
+						<label><input type="checkbox" ng-model="config.settings.radar" ng-change="change('radar')" value="">Radar</label>
+					</div>
+					<div class="checkbox">
+						<label><input type="checkbox" ng-model="config.settings.flash" ng-change="change('flash')" value="">No flash</label>
+					</div>
+					<div class="checkbox">
+						<label><input type="checkbox" ng-model="config.settings.bunnyhop" ng-change="change('bunnyhop')" value="">Bunnyhop</label>
+					</div>
+					<div class="checkbox">
+						<label><input type="checkbox" ng-model="config.settings.skins" ng-change="change('skins')" value="">Skinchanger</label>
+					</div>
+					<button ng-click="hookstatus = !hookstatus; hook();" type="button" class="btn btn-large" ng-class="hookstatus ? 'btn-danger' : 'btn-success'">{{ !hookstatus ? "Start" : "Stop" }} </button>
+
+				</div>
+				<div id="skins" class="tab-pane fade">
+					<h3>Skinchanger</h3>
+					<div class="table-responsive">
+						<table class="table">
+							<thead>
+								<tr>
+									<th>#</th>
+									<th>Weapon</th>
+									<th>Skin name</th>
+									<th>Wear</th>
+									<th>Seed</th>
+									<th>Options</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr ng-repeat="(weapon, obj) in config.skins">
+									<td>{{ obj.id }}</td>
+									<td>{{ weapon }}</td>
+									<td>{{ skins[weapon][""+obj.paintkit] }}</td>
+									<td>{{ obj.wear }}</td>
+									<td>{{ obj.seed }}</td>
+									<td><button type="button" class="btn btn-primary btn-xs" ng-click="delete(weapon)">Delete</button></td>
+								</tr>
+							</tbody>
+							<td><button type="button" class="btn btn-primary btn-xs" data-toggle="modal" data-target="#newWeapon" >Add new</button></td>
+						</table>
+					</div>
+				</div>
+				<div id="newWeapon" class="modal fade" role="dialog">
+					<div class="modal-dialog">
+						<div class="modal-content">
+							<div class="modal-header">
+								<button type="button" class="close" data-dismiss="modal">&times;</button>
+								<h4 class="modal-title">Add new weapon</h4>
+							</div>
+							<div class="modal-body">
+								<div class="form-group">
+									<label for="weapon">
+										Weapon
+									</label>
+									<select id="weapon" class="form-control" ng-model="newWeaponName">
+										<option ng-repeat="weapon in weapons" ng-value="weapon.name">{{weapon.name}}</option>
+									</select>
+								</div>
+								<div class="form-group">
+									<label for="skin">
+										Skin name
+									</label>
+									<select id="skin"  class="form-control" ng-model="newWeapon.paintkit">
+										<option ng-repeat="(skinid,skinname) in skins[newWeaponName]" ng-value="skinid">{{skinname}}</option>
+									</select>
+								</div>
+								<div class="form-group">
+									<label for="wear">Wear</label>
+									<input type="number" class="form-control" ng-model="newWeapon.wear" id="wear" placeholder="0.01">
+								</div>
+								<div class="form-group">
+									<label for="exampleInputName2">Seed</label>
+									<input type="number" class="form-control" ng-model="newWeapon.seed" id="Seed" placeholder="1">
+								</div>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-success btn-md" ng-click="saveNewWeapon()" data-dismiss="modal">Save</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script>
+		angular.module('beaHook', []).controller('mainCtrl', ["$scope" , function(e) {
+			e.saveNewWeapon = function(){
+				e.newWeapon.paintkit = parseInt(e.newWeapon.paintkit),
+				e.config.skins[e.newWeaponName] = e.newWeapon,
+				e.weapons.forEach(function(item,index){
+					if(item.name == e.newWeaponName)
+						e.config.skins[e.newWeaponName].id = parseInt(item.value);
+				}),
+				e.newWeapon = {
+					id : null,
+					paintkit : 0,
+					seed : 1,
+					wear : 0.01
+				},
+				e.save()
+			},e.newWeapon = {
+				id : null,
+				paintkit : 0,
+				seed : 1,
+				wear : 0.01
+			},
+			e.weapons = [
+				{
+					name : "deagle",
+					value: "1"
+				},{
+					name : "fiveseven",
+					value: "3"
+				},{
+					name : "glock",
+					value: "4"
+				},{
+					name : "ak47",
+					value: "7"
+				},{
+					name : "aug",
+					value: "8"
+				},{
+					name : "awp",
+					value: "9"
+				},{
+					name : "famas",
+					value: "10"
+				},{
+					name : "m4a4",
+					value: "16"
+				},{
+					name : "p90",
+					value: "19"
+				},{
+					name : "m4a1",
+					value: "60"
+				},{
+					name : "usps",
+					value: "61"
+				},{
+					name : "p250",
+					value: "36"
+				},{
+					name : "tec9",
+					value: "30"
+			}],e.skins = {
+				famas :{
+					'22' : 'Contrast Spray',
+					'47' : 'Colony',
+					'92' : 'Cyanospatter',
+					'429' : 'Djinn',
+					'154' : 'Afterimage',
+					'178' : 'Doomkitty',
+					'194' : 'Spitfire',
+					'244' : 'Teardown',
+					'218' : 'Hexane',
+					'260' : 'Pulse',
+					'288' : 'Sergeant',
+					'371' : 'Styx',
+					'477' : 'Neural Net',
+					'604' : 'Roll Cage'
+				},
+				m4a4 : {
+					'8' : 'Desert Storm',
+					'101' : 'Tornado',
+					'5' : 'Forest DDPAT',
+					'167' : 'Radiation Hazard',
+					'164' : 'Modern Hunter',
+					'16' : 'Jungle Tiger',
+					'17' : 'Urban DDPAT',
+					'155' : 'Bullet Rain',
+					'170' : 'Predator',
+					'176' : 'Faded Zebra',
+					'187' : 'Zirka',
+					'255' : 'Asiimov',
+					'309' : 'Howl',
+					'215' : 'X-Ray',
+					'336' : 'Desert-Strike',
+					'384' : 'Griffin',
+					'400' : '‹ (Dragon King)',
+					'449' : 'Poseidon',
+					'471' : 'Daybreak',
+					'480' : 'Evil Daimyo',
+					'588' : 'Desolate Space',
+					'533' : 'The Battlestar'
+				},
+				ak47 : {
+					'341' : 'First Class',
+					'14' : 'Red Laminate',
+					'22' : 'Contrast Spray',
+					'44' : 'Case Hardened',
+					'72' : 'Safari Mesh',
+					'122' : 'Jungle Spray',
+					'170' : 'Predator',
+					'172' : 'Black Laminate',
+					'180' : 'Fire Serpent',
+					'394' : 'Cartel',
+					'300' : 'Emerald Pinstripe',
+					'226' : 'Blue Laminate',
+					'282' : 'Redline',
+					'302' : 'Vulcan',
+					'316' : 'Jaguar',
+					'340' : 'Jet Set',
+					'380' : 'Wasteland Rebel',
+					'422' : 'Elite Build',
+					'456' : 'Hydroponic',
+					'474' : 'Aquamarine Revenge',
+					'607' : 'Neon Revolution',
+					'524' : 'Fuel Injector'
+				},
+				awp : {
+					'174' :'BOOM',
+					'344' :'Dragon Lore',
+					'84' :'Pink DDPAT',
+					'30' :'Snake Camo',
+					'51' :'Lightning Strike',
+					'72' :'Safari Mesh',
+					'181' :'Corticera',
+					'259' :'Redline',
+					'395' :'Man-o-war',
+					'212' :'Graphite',
+					'227' :'Electric Hive',
+					'251' :'Pit Viper',
+					'279' :'Asiimov',
+					'424' :'Worm God',
+					'446' :'Medusa',
+					'451' :'Sun in Leo',
+					'475' :'Hyper Beast',
+					'584' :'Phobos',
+				},
+				m4a1 : {
+					'430': 'Hyper Beast',
+					'77': 'Boreal Forest',
+					'235': 'VariCamo',
+					'254': 'Nitro',
+					'189': 'Bright Water',
+					'301': 'Atomic Alloy',
+					'217': 'Blood Tiger',
+					'257': 'Guardian',
+					'321': 'Master Piece',
+					'326': 'Knight',
+					'360': 'Cyrex',
+					'383': 'Basilisk',
+					'440': 'Icarus Fell',
+					'445': 'Hot Rod',
+					'548': 'Chanticos Fire',
+					'587': 'Mecha Industries'
+				},
+				glock:{
+					'2' : 'Groundwater',
+					'3' : 'Candy Apple',
+					'38' : 'Fade',
+					'40' : 'Night',
+					'48' : 'Dragon Tattoo',
+					'437' : 'Twilight Galaxy',
+					'99' : 'Sand Dune',
+					'159' : 'Brass',
+					'399' : 'Catacombs',
+					'208' : 'Sand Dune',
+					'230' : 'Steel Disruption',
+					'278' : 'Blue Fissure',
+					'293' : 'Death Rattle',
+					'353' : 'Water Elemental',
+					'367' : 'Reactor',
+					'381' : 'Grinder',
+					'479' : 'Bunsen Burner',
+					'586' : 'Wasteland Rebel',
+					'607' : 'Weasel'
+				},
+				p90:{
+					'342' : 'Leather',
+					'20' : 'Virus',
+					'22' : 'Contrast Spray',
+					'100' : 'Storm',
+					'67' : 'Cold Blooded',
+					'111' : 'Glacier Mesh',
+					'124' : 'Sand Spray',
+					'156' : 'Death by Kitty',
+					'234' : 'Ash Wood',
+					'169' : 'Fallout Warning',
+					'175' : 'Scorched',
+					'182' : 'Emerald Dragon',
+					'244' : 'Teardown',
+					'228' : 'Blind Spot',
+					'283' : 'Trigon',
+					'311' : 'Desert Warfare',
+					'335' : 'Module',
+					'359' : 'Asiimov',
+					'486' : 'Elite Build',
+					'611' : 'Grim',
+					'593' : 'Chopper'
+				},
+				tec9:{
+					'101': 'Tornado',
+					'2': 'Groundwater',
+					'5': 'Forest DDPAT',
+					'463': 'Terrace',
+					'17': 'Urban DDPAT',
+					'36': 'Ossified',
+					'439': 'Hades',
+					'159': 'Brass',
+					'235': 'VariCamo',
+					'179': 'Nuclear Threat',
+					'248': 'Red Quartz',
+					'206': 'Tornado',
+					'216': 'Blue Titanium',
+					'242': 'Army Mesh',
+					'272': 'Titanium Bit',
+					'289': 'Sandstorm',
+					'303': 'Isaac',
+					'374': 'Toxic',
+					'459': 'Bamboo Forest',
+					'555': 'Re-Entry',
+					'599': 'Ice Cap',
+					'614': 'Fuel Injector'
+				},
+				usps:{
+					'59': 'Slaughter',
+					'25': 'Forest Leaves',
+					'60': 'Dark Water',
+					'235': 'VariCamo',
+					'183': 'Overgrowth',
+					'339': 'Caiman',
+					'217': 'Blood Tiger',
+					'221': 'Serum',
+					'236': 'Night Ops',
+					'277': 'Stainless',
+					'290': 'Guardian',
+					'313': 'Orion',
+					'318': 'Road Rash',
+					'332': 'Royal Blue',
+					'364': 'Business Class',
+					'454': 'Para Green',
+					'489': 'Torque',
+					'540': 'Lead Conduit'
+				},
+				p250:{
+					'102' : 'Whiteout',
+					'34' : 'Metallic DDPAT',
+					'162' : 'Splash',
+					'15' : 'Gunsmoke',
+					'164' : 'Modern Hunter',
+					'27' : 'Bone Mask',
+					'77' : 'Boreal Forest',
+					'99' : 'Sand Dune',
+					'168' : 'Nuclear Threat',
+					'258' : 'Mehndi',
+					'207' : 'Facets',
+					'219' : 'Hive',
+					'404' : 'Muertos',
+					'230' : 'Steel Disruption',
+					'271' : 'Undertow',
+					'295' : 'Franklin',
+					'464' : 'Neon Kimono',
+					'358' : 'Supernova',
+					'373' : 'Contamination',
+					'388' : 'Cartel',
+					'426' : 'Valence',
+					'466' : 'Crimson Kimono',
+					'467' : 'Mint Kimono',
+					'551' : 'Asiimov',
+					'592' : 'Iron Clad'
+				},
+				fiveseven:{
+					'3': 'Candy Apple',
+					'27': 'Bone Mask',
+					'44': 'Case Hardened',
+					'46': 'Contractor',
+					'78': 'Forest Night',
+					'141': 'Orange Peel',
+					'151': 'Jungle',
+					'254': 'Nitro',
+					'248': 'Red Quartz',
+					'210': 'Anodized Gunmetal',
+					'223': 'Nightshade',
+					'252': 'Silver Quartz',
+					'265': 'Kami',
+					'274': 'Copper Galaxy',
+					'464': 'Neon Kimono',
+					'352': 'Fowl Play',
+					'377': 'Hot Shot',
+					'387': 'Urban Hazard',
+					'427': 'Monkey Business',
+					'530': 'Triumvirate',
+					'585': 'Violent Daimyo',
+					'605': 'Scumbria'
+				},
+				deagle:{
+					'37': 'Blaze',
+					'347': 'Pilot',
+					'468': 'Midnight Storm',
+					'468': 'Midnight Storm',
+					'468': 'Midnight Storm',
+					'469': 'Sunset Storm',
+					'5': 'Forest DDPAT',
+					'12': 'Crimson Web',
+					'17': 'Urban DDPAT',
+					'40': 'Night',
+					'61': 'Hypnotic',
+					'90': 'Mudder',
+					'235': 'VariCamo',
+					'185': 'Golden Koi',
+					'248': 'Red Quartz',
+					'231': 'Cobalt Disruption',
+					'232': 'Crimson Web',
+					'237': 'Urban Rubble',
+					'397': 'Naga',
+					'328': 'Hand Cannon',
+					'273': 'Heirloom',
+					'296': 'Meteorite',
+					'351': 'Conspiracy',
+					'425': 'Bronze Deco',
+					'470': 'Sunset Storm',
+					'527': 'Kumicho Dragon'
+				},
+				aug:{
+					'73': 'Wings',
+					'10': 'Copperhead',
+					'9': 'Bengal Tiger',
+					'28': 'Anodized Navy',
+					'167': 'Radiation Hazard',
+					'110': 'Condemned',
+					'33': 'Hot Rod',
+					'100': 'Storm',
+					'46': 'Contractor',
+					'47': 'Colony',
+					'197': 'Anodized Navy',
+					'280': 'Chameleon',
+					'305': 'Torque',
+					'375': 'Radiation Hazard',
+					'442': 'Asterion',
+					'444': 'Daedalus',
+					'455': 'Akihabara Accept',
+					'601': 'Syd Mead'
+				}
+			},e.hookstatus = false,e.config = null,e.trigger = false,e.radar = false,e.glow = false,e.status = !1,socket.on("config",function(config){
+				e.$apply(function(){
+					e.config = config;
+					e.hookstatus = config._started;
+				});
+			}),socket.on("hooked",function(status){
+				e.$apply(function () {
+					e.status = status;
+		        });
+			}),e.change = function(data) {
+				socket.emit("config change",{
+					"data": data,
+					"value": e.config.settings[data]
+				});
+			},e.hook = function() {
+				socket.emit("hook",e.hookstatus);
+			},e.delete = function(weapon){
+				delete e.config.skins[weapon],
+				e.save()
+			},e.save = function(){
+				socket.emit("config save",e.config);
+			},e.weaponChange = function(name){
+				e.$apply(function(){
+					e.newWeapon = name;
+					alert(name);
+				});
+			}
+		}]);
+	</script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	<script src="//use.fontawesome.com/4560377dde.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</body>
+</html>
