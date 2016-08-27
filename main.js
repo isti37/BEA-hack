@@ -9,38 +9,16 @@ var memory = require('memoryjs'),
     jsonfile = require('jsonfile'),
     open = require('opener'),
     https = require('https'),
-    localVersion = require('ver.json');
-
-server.listen(80);
-app.get('/', function (req, res) {
-    res.sendFile('index.html' , { root : __dirname});
-});
-server.on('listening', function() {
-    open('http://localhost');
-    console.log("Waiting for CSGO...");
-    _getProcess = setInterval(main.getProcess,1000);
-});
-io.on('connection', function (socket) {
-    
-    socket.on('config change', function (data) {
-        main.setConfig(data);
-    });
-    socket.on('config save', function (data) {
-        main.saveConfig(data);
-    });
-    socket.on('hack', function (data) {
-        if(data){
-            _started = true,main.start();
-        }else{
-            _started = false,main.stop();
-        }
-    });
-    config._started = _started;
-    socket.emit("config", config);
-    socket.emit('hacked', hacked);
-    delete config._started ;
-});
-
+    localVersion = require('./version.json'),
+    express = require('express'),
+    app = express(),
+    server = require('http').Server(app),
+    io = require('socket.io')(server),
+    main = {
+        DwLocalPlayer: null,
+        LocalPlayerTeam: null,
+        DwGlowObjectManager: null
+    };
 
 main.getJson = function(url){
     https.get(url, function(res){
@@ -58,7 +36,8 @@ main.getJson = function(url){
     });
 };
 main.checkForUpdate = function(){
-    var master = main.getJson('https://raw.githubusercontent.com/s-gto/BEA-hack/master/ver.json');
+    var master = main.getJson('https://raw.githubusercontent.com/s-gto/BEA-hack/master/version.json');
+    console.log(master);
     if(localVersion.version < master.version)
         console.log("Your version is outdated, please update it from https://github.com/s-gto/BEA-hack");
     else if(localVersion.offsets < master.offsets){
@@ -260,22 +239,42 @@ hack.skinchanger.update = function(){
 var DwClientDllBaseAddress = null;
 var DwEngineDllBaseAddress = null;
 
-var express = require('express');
-var app = express();
-var server = require('http').Server(app);
-var io = require('socket.io')(server);
+main.checkForUpdate();
 
 app.use(express.static('public'));
 
-main.checkForUpdate();
+server.listen(80);
+app.get('/', function (req, res) {
+    res.sendFile('index.html' , { root : __dirname});
+});
+server.on('listening', function() {
+    open('http://localhost');
+    console.log("Waiting for CSGO...");
+    _getProcess = setInterval(main.getProcess,1000);
+});
+io.on('connection', function (socket) {
+    
+    socket.on('config change', function (data) {
+        main.setConfig(data);
+    });
+    socket.on('config save', function (data) {
+        main.saveConfig(data);
+    });
+    socket.on('hack', function (data) {
+        if(data){
+            _started = true,main.start();
+        }else{
+            _started = false,main.stop();
+        }
+    });
+    config._started = _started;
+    socket.emit("config", config);
+    socket.emit('hacked', hacked);
+    delete config._started ;
+});
 
 var _trigger,_glow,_radar,_flash,_bunnyhop,_skins,_updating,_started;
 var _getProcess = null,hacked = false;
 var config = require("./config.json");
 var offsets = require("./offsets.json");
-var main = {
-    DwLocalPlayer: null,
-    LocalPlayerTeam: null,
-    DwGlowObjectManager: null
-};
 
