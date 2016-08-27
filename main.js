@@ -21,8 +21,9 @@ app.use(express.static('public'));
 
 var _getProcess = null,hacked = false;
 
-var config = jsonfile.readFileSync("./config.json");
-var offsets = jsonfile.readFileSync("./offsets.json");
+checkForUpdate();
+var config = require("./config.json");
+var offsets = require("./offsets.json");
 var main = {
     DwLocalPlayer: null,
     LocalPlayerTeam: null,
