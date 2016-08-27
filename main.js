@@ -25,19 +25,27 @@ var memory = require('memoryjs'),
 main.checkForUpdate = function(callback){
     request.get('https://raw.githubusercontent.com/s-gto/BEA-hack/master/version.json', function (error, response, body) {
         if (!error && response.statusCode == 200) {
-            master = JSON.parse(body);  
-            console.log(master);
-            if(localVersion.version < master.version)
-                console.log("Your version is outdated, please update it from https://github.com/s-gto/BEA-hack");
-            else if(localVersion.offsets < master.offsets){
-                console.log("offsets are updated");
-                masterOffsets = main.getJson('https://raw.githubusercontent.com/s-gto/BEA-hack/master/offsets.json');
-                offsets = masterOffsets;
-                localVersion.offsets = master.offsets;
-                jsonfile.writeFile("./offsets.json", masterOffsets);
-                jsonfile.writeFile("./version.json", localVersion);
+            master = JSON.parse(body);
+            if(localVersion.version < master.version){
+                console.log("Your version is outdated, please update it from https://github.com/s-gto/BEA-hack !");
+            }else{
+                console.log("Your version is the newest.");
             }
-            callback();
+            if(localVersion.offsets < master.offsets){
+                 request.get('https://raw.githubusercontent.com/s-gto/BEA-hack/master/offsets.json', function (error, response, body) {
+                    if (!error && response.statusCode == 200) {
+                        console.log("Offsets are updated");
+                        masterOffsets = JSON.parse(body);
+                        offsets = masterOffsets;
+                        localVersion.offsets = master.offsets;
+                        jsonfile.writeFile("./offsets.json", masterOffsets);
+                        jsonfile.writeFile("./version.json", localVersion);
+                        callback();
+                    }
+                })
+            }else{
+                callback();
+            }
         }
     });
 };
@@ -92,7 +100,6 @@ main.stop = function(){
     clearInterval(_skins);
 }
 main.start = function(){
-    main.DwGlowObjectManager = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwGlowObject"),"int");
     _trigger = setInterval(function(){
         if(config.settings.trigger){
             hack.trigger();
@@ -165,23 +172,26 @@ hack.glow.start = function(){
         if (!bEntityDormant)
         {
             var iGlowIndex = memory.readMemory(dwEntity + main.getOffset("m_iGlowIndex"),"int");
-            if (iEntityTeam == LocalPlayerTeam){
-                hack.glow.setGlow(iGlowIndex, 0, 1, 0, 0.5);
-            }
-            else 
-                hack.glow.setGlow(iGlowIndex, 1, 0, 0, 0.5);
+            if (iEntityTeam == LocalPlayerTeam)
+                color = hexToRgb(config.colors.friend);
+            else
+                color = hexToRgb(config.colors.enemy);
+            //console.log(config.colors.enemy);
+            //console.log(color);
+            hack.glow.setGlow(iGlowIndex, color.r, color.g, color.b, color.a);
         }
     }
 };
 hack.glow.setGlow = function(iEntityGlowIndex, r, g, b, a){
-    memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x4), r, "float");
-    memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x8), g, "float");
-    memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0xC), b, "float");
-    memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x10), a, "float");
+    var DwGlowObjectManager = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwGlowObject"),"int");
+    memory.writeMemory(DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x4), r, "float");
+    memory.writeMemory(DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x8), g, "float");
+    memory.writeMemory(DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0xC), b, "float");
+    memory.writeMemory(DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x10), a, "float");
 
-    memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x24), 1, "bool");
-    memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x25), 0, "bool");
-    memory.writeMemory(main.DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x26), 0, "bool");
+    memory.writeMemory(DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x24), 1, "bool");
+    memory.writeMemory(DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x25), 0, "bool");
+    memory.writeMemory(DwGlowObjectManager + (iEntityGlowIndex * 0x38 + 0x26), 0, "bool");
 };
 hack.noflash = function(){
     var DwLocalPlayer = memory.readMemory(DwClientDllBaseAddress + main.getOffset("m_dwLocalPlayer"),"int");
@@ -239,6 +249,24 @@ var _getProcess = null,hacked = false;
 var config = require("./config.json");
 var offsets = require("./offsets.json");
 
+var hexToRgb= function(h){
+    var color = cutHex(h);
+    var r = parseInt(color.substring(0,2),16), g = parseInt(color.substring(2,4),16), b = parseInt(color.substring(4,6),16)
+    return {
+        "r" : roundDown(r / 255,3),
+        "g" : roundDown(g / 255,3),
+        "b" : roundDown(b / 255,3),
+        "a" : 0.60
+    };
+}
+var cutHex = function(h){
+    return (h.charAt(0)=="#") ? h.substring(1,7):h
+}
+var roundDown = function(number, decimals) {
+    decimals = decimals || 0;
+    return ( Math.floor( number * Math.pow(10, decimals) ) / Math.pow(10, decimals) );
+}
+
 main.checkForUpdate(function(){
     app.use(express.static('public'));
 
@@ -269,6 +297,6 @@ main.checkForUpdate(function(){
         config._started = _started;
         socket.emit("config", config);
         socket.emit('hacked', hacked);
-        delete config._started ;
+        delete config._started;
     });
 });
